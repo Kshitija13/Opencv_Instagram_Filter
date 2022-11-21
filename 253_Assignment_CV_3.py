@@ -80,31 +80,28 @@ def invert(img):
     inv = cv2.bitwise_not(img)
     return inv
 
-#defining a function
-from scipy.interpolate import UnivariateSpline
-def LookupTable(x, y):
-  spline = UnivariateSpline(x, y)
-  return spline(range(256))
+def tv_60(image):
+    image = image / 255
+    # blank image
+    x, y = image.shape
+    g = np.zeros((x, y), dtype=np.float32)
 
-#summer effect
-def Summer(img):
-    increaseLookupTable = LookupTable([0, 64, 128, 256], [0, 80, 160, 256])
-    decreaseLookupTable = LookupTable([0, 64, 128, 256], [0, 50, 100, 256])
-    blue_channel, green_channel,red_channel  = cv2.split(img)
-    red_channel = cv2.LUT(red_channel, increaseLookupTable).astype(np.uint8)
-    blue_channel = cv2.LUT(blue_channel, decreaseLookupTable).astype(np.uint8)
-    sum= cv2.merge((blue_channel, green_channel, red_channel ))
-    return sum
+    # salt and pepper amount
+    pepper = 0.1
+    salt = 0.95
 
-#winter effect
-def Winter(img):
-    increaseLookupTable = LookupTable([0, 64, 128, 256], [0, 80, 160, 256])
-    decreaseLookupTable = LookupTable([0, 64, 128, 256], [0, 50, 100, 256])
-    blue_channel, green_channel,red_channel = cv2.split(img)
-    red_channel = cv2.LUT(red_channel, decreaseLookupTable).astype(np.uint8)
-    blue_channel = cv2.LUT(blue_channel, increaseLookupTable).astype(np.uint8)
-    win= cv2.merge((blue_channel, green_channel, red_channel))
-    return win
+    # create salt and pepper noise image
+    for i in range(x):
+        for j in range(y):
+            rdn = np.random.random()
+            if rdn < pepper:
+                g[i][j] = 0
+            elif rdn > salt:
+                g[i][j] = 1
+            else:
+                g[i][j] = image[i][j]
+
+    return g
 
 def Insta_Filter():
     st.title("CV Assignment 1")
@@ -121,14 +118,12 @@ def Insta_Filter():
     original_image = Image.open(image_file)
     original_image = np.array(original_image)
 
-    st.image(original_image, caption="★ Original Image ★")
+    st.image(original_image, caption="Original Image")
 
 
     filter = st.radio(
-        "**********Choose your Favourite Filter**********",
-        ["Cartoon Effect", "Blurring Filter", "GreySacle", "Sharpen", "Sepia Filter", "Pencil_Sketch_Grey", "Pencil_Sketch_Col", "HDR", "Invert", "Summer",
-         "Winter"],
-        key="filter"
+        "*********************************************Choose your Favourite Filter*********************************************",
+        ["Cartoon Effect", "Blurring Filter", "GreyScale", "Sharpen", "Sepia Filter", "Pencil_Sketch_Grey", "Pencil_Sketch_Color", "HDR Filter", "Invert Image", "60s TV"]
     )
 
     st.write('<style>div.row-widget.stRadio > div{flex-direction:row;justify-content: center;} </style>',unsafe_allow_html=True)
@@ -157,25 +152,23 @@ def Insta_Filter():
     elif filter == "Pencil_Sketch_Grey":
         processed_image = pencil_sketch_grey(processed_image)
 
-    elif filter == "Pencil_Sketch_Col":
+    elif filter == "Pencil_Sketch_Color":
         processed_image = pencil_sketch_col(processed_image)
 
-    elif filter == "HDR":
+    elif filter == "HDR Filter":
         processed_image = HDR(processed_image)
 
-    elif filter == "Invert":
+    elif filter == "Invert Image":
         processed_image == invert(processed_image)
 
-    elif filter == "Summer":
-        processed_image = Summer(processed_image)
-
-    elif filter == "Winter":
-        processed_image = Winter(processed_image)
+    elif filter == "60s TV":
+        gray = cv2.cvtColor(original_image, cv2.COLOR_BGR2GRAY)
+        processed_image = tv_60(gray)
 
     else:
         st.text("Sorry Filter is not Available")
 
-    label = "***************Result of %s Filter***************" % filter
+    label = "Result of %s Filter" % filter
     st.image(processed_image, caption=label)
 
 
